@@ -58,7 +58,7 @@ fi
 if sudo -u "${SSH_USER}" test -f "/home/${SSH_USER}/.ssh/id_rsa"; then
   for repo in \
     "git@github.com:rconway/scripts" \
-    "git@github.com:rconway/localcoda" \
+    "git@github.com:EOEPCA/localcoda" \
     "git@github.com:EOEPCA/eoepca-killercoda"; do
     dest="$(basename "${repo}")"
     if ! sudo -u "${SSH_USER}" test -d "/home/${SSH_USER}/${dest}"; then
