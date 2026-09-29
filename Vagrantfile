@@ -54,5 +54,13 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: "chmod 600 ~/.ssh/id_rsa && chmod 644 ~/.ssh/id_rsa.pub", privileged: false
   end
 
-  config.vm.provision "shell", path: "provision.sh"
+  # Save the ssh-config to a local file after the VM is brought up.
+  # This can then be included in your SSH client configuration for easy access to the VM.
+  # e.g. with 'Include <path_to_this_directory>/ssh-config'
+  config.trigger.after :up do |trigger|
+    trigger.info = "Updating ./ssh-config"
+    trigger.run = {
+      inline: "bash -c 'vagrant ssh-config > ssh-config'"
+    }
+  end
 end
