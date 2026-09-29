@@ -14,7 +14,7 @@ This repository defines a Vagrant VM for running the EOEPCA Localcoda tutorials.
   vagrant plugin install vagrant-triggers
   ```
 
-The default VM resources are 4 CPUs, 8 GB RAM, and a 60 GB disk. Make sure the host has enough available resources. These host environment variables configure VM resources, guest addresses, and the tutorial branch:
+The default VM resources are 4 CPUs, 8 GB RAM, and a 60 GB disk. Make sure the host has enough available resources. These host environment variables configure the Vagrant machine name, guest hostname, VM resources, guest addresses, and tutorial branch:
 
 | Environment variable | Default | Setting |
 | --- | ---: | --- |
@@ -24,6 +24,8 @@ The default VM resources are 4 CPUs, 8 GB RAM, and a 60 GB disk. Make sure the h
 | `CODAVM_VBOX_IP` | `192.168.56.10` | VirtualBox guest IP |
 | `CODAVM_LIBVIRT_IP` | `172.28.128.100` | libvirt guest IP |
 | `CODAVM_KILLERCODA_BRANCH` | `eoepca-2.1` | Tutorial repository branch |
+| `CODAVM_NAME` | `codavm` | Vagrant machine name (SSH config host and libvirt domain) |
+| `CODAVM_HOSTNAME` | `codavm` | Guest hostname |
 
 For example, to use fewer resources with libvirt:
 
@@ -101,7 +103,7 @@ vagrant destroy    # delete the VM and its virtual disk
 The generated `ssh-config` file can also be used to connect with a regular SSH client:
 
 ```sh
-ssh -F ssh-config codavm
+ssh -F ssh-config "${CODAVM_NAME:-codavm}"
 ```
 
 The VM is disposable: `vagrant destroy` removes its disk, including the cloned repositories and any tutorial data stored in the VM.

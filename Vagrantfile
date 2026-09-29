@@ -29,17 +29,19 @@ VM_DISK_GB = positive_integer_env("CODAVM_DISK_GB", 60)
 VBOX_IP = ipv4_env("CODAVM_VBOX_IP", "192.168.56.10")
 LIBVIRT_IP = ipv4_env("CODAVM_LIBVIRT_IP", "172.28.128.100")
 KILLERCODA_BRANCH = ENV.fetch("CODAVM_KILLERCODA_BRANCH", "eoepca-2.1")
+VM_NAME = ENV.fetch("CODAVM_NAME", "codavm")
+VM_HOSTNAME = ENV.fetch("CODAVM_HOSTNAME", "codavm")
 
 Vagrant.configure("2") do |config|
-  # Names the machine "codavm" instead of the default "default" (affects
-  # `vagrant ssh-config` Host entry, libvirt domain name, log prefixes, etc).
-  config.vm.define "codavm"
+  # Defaults the machine name to "codavm" instead of Vagrant's "default"
+  # (affects `vagrant ssh-config` Host entry, libvirt domain name, log prefixes, etc).
+  config.vm.define VM_NAME
 
   # Ubuntu 24.04 (kernel 6.8+) has native ID-mapped mount support, which
   # Sysbox needs and which avoids having to build/install the shiftfs module.
   config.vm.box = "bento/ubuntu-24.04"
 
-  config.vm.hostname = "codavm"
+  config.vm.hostname = VM_HOSTNAME
 
   # VirtualBox
   config.vm.provider :virtualbox do |vb, override|
