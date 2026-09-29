@@ -1,6 +1,35 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+require "ipaddr"
+
+def positive_integer_env(name, default)
+  value = Integer(ENV.fetch(name, default.to_s), 10)
+  abort "#{name} must be a positive integer" unless value.positive?
+  value
+rescue ArgumentError
+  abort "#{name} must be a positive integer"
+end
+
+def ipv4_env(name, default)
+  value = ENV.fetch(name, default)
+  address = IPAddr.new(value)
+  abort "#{name} must be an IPv4 address" unless address.ipv4? && value.match?(/\A(?:\d{1,3}\.){3}\d{1,3}\z/)
+  value
+rescue IPAddr::InvalidAddressError
+  abort "#{name} must be an IPv4 address"
+end
+
+# Host-overridable VM resource defaults (memory in MB, disk in GB).
+VM_CPUS = positive_integer_env("CODAVM_CPUS", 4)
+VM_MEMORY_MB = positive_integer_env("CODAVM_MEMORY_MB", 8192)
+VM_DISK_GB = positive_integer_env("CODAVM_DISK_GB", 60)
+
+# Host-overridable guest addresses on each provider's private network.
+VBOX_IP = ipv4_env("CODAVM_VBOX_IP", "192.168.56.10")
+LIBVIRT_IP = ipv4_env("CODAVM_LIBVIRT_IP", "172.28.128.100")
+KILLERCODA_BRANCH = ENV.fetch("CODAVM_KILLERCODA_BRANCH", "eoepca-2.1")
+
 Vagrant.configure("2") do |config|
   # Names the machine "codavm" instead of the default "default" (affects
   # `vagrant ssh-config` Host entry, libvirt domain name, log prefixes, etc).
@@ -12,22 +41,19 @@ Vagrant.configure("2") do |config|
 
   config.vm.hostname = "codavm"
 
-  VBOX_IP = "192.168.56.10"
-  LIBVIRT_IP = "172.28.128.100"
-
   # VirtualBox
   config.vm.provider :virtualbox do |vb, override|
-    vb.memory = 8192
-    vb.cpus = 4
-    override.vm.disk :disk, size: "60GB", primary: true
+    vb.memory = VM_MEMORY_MB
+    vb.cpus = VM_CPUS
+    override.vm.disk :disk, size: "#{VM_DISK_GB}GB", primary: true
     override.vm.network "private_network", ip: VBOX_IP
   end
 
   # libvirt
   config.vm.provider :libvirt do |lv, override|
-    lv.memory = 8192
-    lv.cpus = 4
-    lv.machine_virtual_size = 60
+    lv.memory = VM_MEMORY_MB
+    lv.cpus = VM_CPUS
+    lv.machine_virtual_size = VM_DISK_GB
     override.vm.network "private_network", ip: LIBVIRT_IP
 
     # Works around a vagrant-libvirt bug where the auto-detected custom CPU
@@ -74,11 +100,17 @@ Vagrant.configure("2") do |config|
   # provisioners above so it runs after them (it relies on the key already
   # being in place).
   config.vm.provider :virtualbox do |vb, override|
-    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => VBOX_IP }
+    override.vm.provision "shell", path: "provision.sh", env: {
+      "EXT_IP_ADDR" => VBOX_IP,
+      "EOEPCA_KILLERCODA_BRANCH" => KILLERCODA_BRANCH
+    }
   end
 
   config.vm.provider :libvirt do |lv, override|
-    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => LIBVIRT_IP }
+    override.vm.provision "shell", path: "provision.sh", env: {
+      "EXT_IP_ADDR" => LIBVIRT_IP,
+      "EOEPCA_KILLERCODA_BRANCH" => KILLERCODA_BRANCH
+    }
   end
 
   # Save the ssh-config to a local file after the VM is brought up.

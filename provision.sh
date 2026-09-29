@@ -22,7 +22,7 @@ REPOS=(
   "https://github.com/EOEPCA/localcoda"
   "https://github.com/EOEPCA/eoepca-killercoda"
 )
-EOEPCA_KILLERCODA_BRANCH="eoepca-2.1"
+EOEPCA_KILLERCODA_BRANCH="${EOEPCA_KILLERCODA_BRANCH:-eoepca-2.1}"
 
 # Shared by custom hooks: true if the SSH keypair carried in from the host
 # (see Vagrantfile) is present, checking the same names/order as ssh(1).
