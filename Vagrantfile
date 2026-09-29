@@ -13,17 +13,28 @@ Vagrant.configure("2") do |config|
   config.vm.hostname = "codavm"
 
   # VirtualBox
-  config.vm.disk :disk, size: "60GB", primary: true
-  config.vm.provider :virtualbox do |vb|
+  config.vm.provider :virtualbox do |vb, override|
     vb.memory = 8192
     vb.cpus = 4
+    override.vm.disk :disk, size: "60GB", primary: true
+    ip = "192.168.56.10"
+    override.vm.network "private_network", ip: ip
+    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => ip }
   end
 
   # libvirt
-  config.vm.provider :libvirt do |lv|
+  config.vm.provider :libvirt do |lv, override|
     lv.memory = 8192
     lv.cpus = 4
     lv.machine_virtual_size = 60
+    ip = "172.28.128.100"
+    override.vm.network "private_network", ip: ip
+    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => ip }
+
+    # Works around a vagrant-libvirt bug where the auto-detected custom CPU
+    # model ends up with a vendor but no model in the generated domain XML,
+    # causing "CPU vendor specified without CPU model" on redefine.
+    lv.cpu_mode = "host-passthrough"
   end
 
   # Expand the file-system to the disk size

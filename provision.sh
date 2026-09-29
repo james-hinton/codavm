@@ -149,6 +149,10 @@ index ac9af93..68f0830 100644
  #Local orchestration engine mount port for backend. If you want to start multiple docker backends on the same machine you will need to set the port to \$RANDOM_PORT in order for the different containers not to clash. This will add also the port to EXT_DOMAIN_NAME and properly update all the urls
  LOCAL_INT_IPPORT=0.0.0.0:\$RANDOM_PORT
 EOF
+#
+# Set EXT_DOMAIN_NAME using the external IP address provided by Vagrant
+hexip="$(printf '%02x%02x%02x%02x' ${EXT_IP_ADDR//./ })"
+sed -i "s/^EXT_DOMAIN_NAME=.*/EXT_DOMAIN_NAME=.${hexip}.nip.io/" "/home/${SSH_USER}/localcoda/backend/cfg/conf"
 # End of localcoda repo modifications
 
 # MODS for eoepca-killercoda repos
