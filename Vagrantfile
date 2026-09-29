@@ -12,14 +12,15 @@ Vagrant.configure("2") do |config|
 
   config.vm.hostname = "codavm"
 
+  VBOX_IP = "192.168.56.10"
+  LIBVIRT_IP = "172.28.128.100"
+
   # VirtualBox
   config.vm.provider :virtualbox do |vb, override|
     vb.memory = 8192
     vb.cpus = 4
     override.vm.disk :disk, size: "60GB", primary: true
-    ip = "192.168.56.10"
-    override.vm.network "private_network", ip: ip
-    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => ip }
+    override.vm.network "private_network", ip: VBOX_IP
   end
 
   # libvirt
@@ -27,9 +28,7 @@ Vagrant.configure("2") do |config|
     lv.memory = 8192
     lv.cpus = 4
     lv.machine_virtual_size = 60
-    ip = "172.28.128.100"
-    override.vm.network "private_network", ip: ip
-    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => ip }
+    override.vm.network "private_network", ip: LIBVIRT_IP
 
     # Works around a vagrant-libvirt bug where the auto-detected custom CPU
     # model ends up with a vendor but no model in the generated domain XML,
@@ -57,7 +56,9 @@ Vagrant.configure("2") do |config|
   end
 
   # Carry the host's SSH keypair into the VM, if present (e.g. for git over SSH).
-  # Preference order matches ssh(1)'s default identity file search.
+  # Preference order matches ssh(1)'s default identity file search. Declared
+  # before provision.sh's registration below so it runs before provision.sh,
+  # which relies on the key already being in place.
   key_basename = ["id_ed25519", "id_ecdsa", "id_rsa"].find do |name|
     File.exist?(File.expand_path("~/.ssh/#{name}"))
   end
@@ -67,6 +68,17 @@ Vagrant.configure("2") do |config|
     config.vm.provision "file", source: host_ssh_key, destination: ".ssh/#{key_basename}"
     config.vm.provision "file", source: "#{host_ssh_key}.pub", destination: ".ssh/#{key_basename}.pub"
     config.vm.provision "shell", inline: "chmod 600 ~/.ssh/#{key_basename} && chmod 644 ~/.ssh/#{key_basename}.pub", privileged: false
+  end
+
+  # Run the core provisioning script. Declared after the git-config/SSH-key
+  # provisioners above so it runs after them (it relies on the key already
+  # being in place).
+  config.vm.provider :virtualbox do |vb, override|
+    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => VBOX_IP }
+  end
+
+  config.vm.provider :libvirt do |lv, override|
+    override.vm.provision "shell", path: "provision.sh", env: { "EXT_IP_ADDR" => LIBVIRT_IP }
   end
 
   # Save the ssh-config to a local file after the VM is brought up.

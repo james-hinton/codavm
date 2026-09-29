@@ -14,91 +14,48 @@ apt-get install -y --no-install-recommends \
   curl \
   gnupg \
   git \
-  jq \
-  zsh
+  jq
 
-chsh -s "$(command -v zsh)" "${SSH_USER}" || usermod -s "$(command -v zsh)" "${SSH_USER}"
+# --- Clone repos -------------------------------------------------------
+# Public repos are cloned over https so they work without any SSH key.
+REPOS=(
+  "https://github.com/EOEPCA/localcoda"
+  "https://github.com/EOEPCA/eoepca-killercoda"
+)
+EOEPCA_KILLERCODA_BRANCH="eoepca-2.1"
 
-# --- oh-my-zsh --------------------------------------------------------------
-if ! sudo -u "${SSH_USER}" test -d "/home/${SSH_USER}/.oh-my-zsh"; then
-  # The installer can exit non-zero here despite completing successfully
-  # (e.g. trying to exec an interactive zsh with no TTY); `|| true` avoids
-  # that tripping `set -e`, and the `test -d` guard covers real failures.
-  sudo -u "${SSH_USER}" sh -c \
-    'export RUNZSH=no CHSH=no; sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended' \
-    </dev/null || true
-  sudo -u "${SSH_USER}" test -d "/home/${SSH_USER}/.oh-my-zsh"
-fi
-
-sed -i \
-  -e 's/^ZSH_THEME=.*/ZSH_THEME="bira"/' \
-  -e 's/^plugins=(.*/plugins=()/' \
-  "/home/${SSH_USER}/.zshrc"
-
-ZSHRC="/home/${SSH_USER}/.zshrc"
-if ! grep -qF 'scripts/dotfiles/zshrc' "${ZSHRC}"; then
-  cat >>"${ZSHRC}" <<'EOF'
-
-if [ -f $HOME/scripts/dotfiles/zshrc ]; then
-  source $HOME/scripts/dotfiles/zshrc
-fi
-EOF
-fi
-
-# --- Atuin (shell history sync/search) -------------------------------------
-if ! sudo -u "${SSH_USER}" test -x "/home/${SSH_USER}/.atuin/bin/atuin"; then
-  # --non-interactive skips all setup prompts outright (avoids relying on
-  # /dev/tty absence, which isn't reliable under Vagrant's shell provisioner).
-  sudo -u "${SSH_USER}" bash <<'SCRIPT'
-curl --proto "=https" --tlsv1.2 -sSf https://setup.atuin.sh | sh -s -- --non-interactive
-SCRIPT
-fi
-
-# --- Clone repos (relies on the SSH keypair provisioned above) -------------
-if sudo -u "${SSH_USER}" test -f "/home/${SSH_USER}/.ssh/id_rsa"; then
-  for repo in \
-    "git@github.com:rconway/scripts" \
-    "git@github.com:EOEPCA/localcoda" \
-    "git@github.com:EOEPCA/eoepca-killercoda"; do
-    dest="$(basename "${repo}")"
-    if ! sudo -u "${SSH_USER}" test -d "/home/${SSH_USER}/${dest}"; then
-      # accept-new: trust the host key on first connect instead of a
-      # separate ssh-keyscan step; don't let one failed clone (e.g. auth
-      # not yet set up for a given repo) abort the rest of provisioning.
-      sudo -u "${SSH_USER}" env GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" \
-        git -C "/home/${SSH_USER}" clone "${repo}" \
-        || echo "==> WARNING: failed to clone ${repo}, continuing"
-    fi
+# Shared by custom hooks: true if the SSH keypair carried in from the host
+# (see Vagrantfile) is present, checking the same names/order as ssh(1).
+has_ssh_key() {
+  local name
+  for name in id_ed25519 id_ecdsa id_rsa; do
+    sudo -u "${SSH_USER}" test -f "/home/${SSH_USER}/.ssh/${name}" && return 0
   done
-fi
+  return 1
+}
 
-# MODS for localcoda repo
-#
-# docker registries configuration
-sudo -u "${SSH_USER}" bash <<'SCRIPT'
-cat <<EOF >"$HOME/localcoda/registries.yaml"
-mirrors:
-  "docker.io":
-    endpoint:
-      - http://docker.io.registry.c0a80032.nip.io:5000
-  "ghcr.io":
-    endpoint:
-      - http://ghcr.io.registry.c0a80032.nip.io:5000
-  "quay.io":
-    endpoint:
-      - http://quay.io.registry.c0a80032.nip.io:5000
-configs:
-  "docker.io":
-    tls:
-      insecure: true
-  "ghcr.io":
-    tls:
-      insecure: true
-  "quay.io":
-    tls:
-      insecure: true
-EOF
-SCRIPT
+# Shared by custom hooks (run at the end of this script) so they can clone
+# extra repos using the same guard/retry behavior as the core repos.
+clone_repo() {
+  local repo="$1"
+  local dest
+  dest="$(basename "${repo}")"
+  if ! sudo -u "${SSH_USER}" test -d "/home/${SSH_USER}/${dest}"; then
+    # accept-new: trust the host key on first connect instead of a
+    # separate ssh-keyscan step; don't let one failed clone (e.g. auth
+    # not yet set up for a given repo) abort the rest of provisioning.
+    sudo -u "${SSH_USER}" env GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" \
+      git -C "/home/${SSH_USER}" clone "${repo}" \
+      || echo "==> WARNING: failed to clone ${repo}, continuing"
+  fi
+}
+
+# Clone the specified REPOS
+for repo in "${REPOS[@]}"; do
+  clone_repo "${repo}"
+done
+
+# MODS for localcoda repos
 #
 # Use sysbox as the virtualization engine for localcoda
 conf_file="/home/${SSH_USER}/localcoda/backend/cfg/conf"
@@ -106,15 +63,8 @@ sed -i "s/^VIRT_ENGINE=.*/VIRT_ENGINE=sysbox/" "${conf_file}"
 grep -qFx "VIRT_ENGINE=sysbox" "${conf_file}" \
   || echo "VIRT_ENGINE=sysbox" >>"${conf_file}"
 #
-# Use custom registries.yaml for k3s
-conf_file="/home/${SSH_USER}/localcoda/backend/cfg/conf"
-sed -i 's|^K3S_REGISTRY_YAML=.*|K3S_REGISTRY_YAML="$HOME/localcoda/registries.yaml"|' "${conf_file}"
-grep -qFx 'K3S_REGISTRY_YAML="$HOME/localcoda/registries.yaml"' "${conf_file}" \
-  || echo 'K3S_REGISTRY_YAML="$HOME/localcoda/registries.yaml"' >>"${conf_file}"
-#
 # Set EXT_DOMAIN_NAME using the external IP address provided by Vagrant
 hexip="$(printf '%02x%02x%02x%02x' ${EXT_IP_ADDR//./ })"
-conf_file="/home/${SSH_USER}/localcoda/backend/cfg/conf"
 # Appends the setting if the sed pattern below matched nothing (0 substitutions).
 sed -i "s/^EXT_DOMAIN_NAME=.*/EXT_DOMAIN_NAME=.${hexip}.nip.io/" "${conf_file}"
 grep -qFx "EXT_DOMAIN_NAME=.${hexip}.nip.io" "${conf_file}" \
@@ -124,8 +74,8 @@ grep -qFx "EXT_DOMAIN_NAME=.${hexip}.nip.io" "${conf_file}" \
 # MODS for eoepca-killercoda repos
 #
 # Switch to the appropriate branch for eoepca-killercoda
-sudo -u "${SSH_USER}" bash <<'SCRIPT'
-cd "$HOME/eoepca-killercoda" && git switch eoepca-2.1 ; cd "$HOME"
+sudo -u "${SSH_USER}" env BRANCH="${EOEPCA_KILLERCODA_BRANCH}" bash <<'SCRIPT'
+cd "$HOME/eoepca-killercoda" && git switch "$BRANCH" ; cd "$HOME"
 envfile="$HOME/eoepca-killercoda/.env"
 grep -qxF 'export LOCALCODA_ROOT="../localcoda"' "$envfile" 2>/dev/null ||
   echo 'export LOCALCODA_ROOT="../localcoda"' >>"$envfile"
@@ -175,3 +125,19 @@ systemctl restart docker
 
 echo "==> Provisioning complete. Docker + sysbox-runc are ready."
 echo "==> Run containers with: docker run --runtime=sysbox-runc ..."
+
+# --- Custom provisioning hooks -----------------------------------------
+# Optional, user-specific customizations live in provision.d/ (synced from
+# the project directory via Vagrant's default /vagrant share). Every *.sh
+# script found there is run in name-sorted order, after all core
+# provisioning above has completed; core provisioning works standalone even
+# if provision.d/ is absent or empty.
+HOOKS_DIR="/vagrant/provision.d"
+if [ -d "${HOOKS_DIR}" ]; then
+  for hook in "${HOOKS_DIR}"/*.sh; do
+    [ -e "${hook}" ] || continue
+    echo "==> Running custom hook: $(basename "${hook}")"
+    # shellcheck disable=SC1090
+    source "${hook}"
+  done
+fi
