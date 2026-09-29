@@ -57,12 +57,16 @@ Vagrant.configure("2") do |config|
   end
 
   # Carry the host's SSH keypair into the VM, if present (e.g. for git over SSH).
-  host_ssh_key = File.expand_path("~/.ssh/id_rsa")
-  if File.exist?(host_ssh_key)
-    config.vm.provision "shell", inline: "mkdir -p ~/.ssh && chmod 700 ~/.ssh && rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub", privileged: false
-    config.vm.provision "file", source: host_ssh_key, destination: ".ssh/id_rsa"
-    config.vm.provision "file", source: "#{host_ssh_key}.pub", destination: ".ssh/id_rsa.pub"
-    config.vm.provision "shell", inline: "chmod 600 ~/.ssh/id_rsa && chmod 644 ~/.ssh/id_rsa.pub", privileged: false
+  # Preference order matches ssh(1)'s default identity file search.
+  key_basename = ["id_ed25519", "id_ecdsa", "id_rsa"].find do |name|
+    File.exist?(File.expand_path("~/.ssh/#{name}"))
+  end
+  if key_basename
+    host_ssh_key = File.expand_path("~/.ssh/#{key_basename}")
+    config.vm.provision "shell", inline: "mkdir -p ~/.ssh && chmod 700 ~/.ssh && rm -f ~/.ssh/#{key_basename} ~/.ssh/#{key_basename}.pub", privileged: false
+    config.vm.provision "file", source: host_ssh_key, destination: ".ssh/#{key_basename}"
+    config.vm.provision "file", source: "#{host_ssh_key}.pub", destination: ".ssh/#{key_basename}.pub"
+    config.vm.provision "shell", inline: "chmod 600 ~/.ssh/#{key_basename} && chmod 644 ~/.ssh/#{key_basename}.pub", privileged: false
   end
 
   # Save the ssh-config to a local file after the VM is brought up.
