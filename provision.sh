@@ -72,24 +72,6 @@ if sudo -u "${SSH_USER}" test -f "/home/${SSH_USER}/.ssh/id_rsa"; then
   done
 fi
 
-# Helper function to apply a git patch if it hasn't been applied already
-apply_patch() {
-  patchfile=$(mktemp)
-  cat >"$patchfile"
-  chmod 644 "$patchfile"
-  sudo -u "${SSH_USER}" PATCHNAME="$1" REPOS="$2" PATCHFILE="$patchfile" bash <<'SCRIPT'
-cd "$REPOS"
-if ! git apply --reverse --check "$PATCHFILE" 2>/dev/null; then
-  echo "==> Applying patch $PATCHNAME"
-  git apply "$PATCHFILE"
-  echo "==> DONE: Applied patch $PATCHNAME"
-else
-  echo "==> Patch $PATCHNAME already applied" >&2
-fi
-SCRIPT
-  rm -f "$patchfile"
-}
-
 # MODS for localcoda repo
 #
 # docker registries configuration
@@ -119,40 +101,24 @@ EOF
 SCRIPT
 #
 # Use sysbox as the virtualization engine for localcoda
-cat <<'EOF' | apply_patch "engine" "/home/${SSH_USER}/localcoda"
-diff --git a/backend/cfg/conf b/backend/cfg/conf
-index ac9af93..6d4ee30 100644
---- a/backend/cfg/conf
-+++ b/backend/cfg/conf
-@@ -1,6 +1,6 @@
- ##General configuration options
- #Allowed virtualization engines supported for backend are docker or sysbox. Frontend will always use docker.
--VIRT_ENGINE=docker
-+VIRT_ENGINE=sysbox
- #Allowed orchestration engines supported at the moment are local and kubernetes
- ORCHESTRATION_ENGINE=local
- #Default tutorial duration (in seconds). Set to "-1" to disable.
-EOF
+conf_file="/home/${SSH_USER}/localcoda/backend/cfg/conf"
+sed -i "s/^VIRT_ENGINE=.*/VIRT_ENGINE=sysbox/" "${conf_file}"
+grep -qFx "VIRT_ENGINE=sysbox" "${conf_file}" \
+  || echo "VIRT_ENGINE=sysbox" >>"${conf_file}"
 #
 # Use custom registries.yaml for k3s
-cat <<'EOF' | apply_patch "registries" "/home/${SSH_USER}/localcoda"
-diff --git a/backend/cfg/conf b/backend/cfg/conf
-index ac9af93..68f0830 100644
---- a/backend/cfg/conf
-+++ b/backend/cfg/conf
-@@ -38,6 +38,7 @@ REMOTE_PORT=1
- #Custom registries.yaml file for k3s
- #Note that this file will be mounted into the backend container at /etc/rancher/k3s/registries.yaml and will be used by k3s when starting the tutorial containers. Can be used to (for example) supply credentials for DockerHub or other private registries - or to configure alternate registries, such as a pull-through cache.
- #K3S_REGISTRY_YAML="/path/to/your/k3s/registries.yaml"
-+K3S_REGISTRY_YAML="$HOME/localcoda/registries.yaml"
- ##Advanced configuration - LOCAL ORCHESTRATOR
- #Local orchestration engine mount port for backend. If you want to start multiple docker backends on the same machine you will need to set the port to \$RANDOM_PORT in order for the different containers not to clash. This will add also the port to EXT_DOMAIN_NAME and properly update all the urls
- LOCAL_INT_IPPORT=0.0.0.0:\$RANDOM_PORT
-EOF
+conf_file="/home/${SSH_USER}/localcoda/backend/cfg/conf"
+sed -i 's|^K3S_REGISTRY_YAML=.*|K3S_REGISTRY_YAML="$HOME/localcoda/registries.yaml"|' "${conf_file}"
+grep -qFx 'K3S_REGISTRY_YAML="$HOME/localcoda/registries.yaml"' "${conf_file}" \
+  || echo 'K3S_REGISTRY_YAML="$HOME/localcoda/registries.yaml"' >>"${conf_file}"
 #
 # Set EXT_DOMAIN_NAME using the external IP address provided by Vagrant
 hexip="$(printf '%02x%02x%02x%02x' ${EXT_IP_ADDR//./ })"
-sed -i "s/^EXT_DOMAIN_NAME=.*/EXT_DOMAIN_NAME=.${hexip}.nip.io/" "/home/${SSH_USER}/localcoda/backend/cfg/conf"
+conf_file="/home/${SSH_USER}/localcoda/backend/cfg/conf"
+# Appends the setting if the sed pattern below matched nothing (0 substitutions).
+sed -i "s/^EXT_DOMAIN_NAME=.*/EXT_DOMAIN_NAME=.${hexip}.nip.io/" "${conf_file}"
+grep -qFx "EXT_DOMAIN_NAME=.${hexip}.nip.io" "${conf_file}" \
+  || echo "EXT_DOMAIN_NAME=.${hexip}.nip.io" >>"${conf_file}"
 # End of localcoda repo modifications
 
 # MODS for eoepca-killercoda repos
