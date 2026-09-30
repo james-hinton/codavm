@@ -55,6 +55,17 @@ for repo in "${REPOS[@]}"; do
   clone_repo "${repo}"
 done
 
+# If the user's SSH key is available, configure to use SSH for git pushes (fetches keep using https, needing no key)
+# since this user has push access to them via their own SSH key.
+if has_ssh_key; then
+  for repo in "${REPOS[@]}"; do
+    [[ "${repo}" == https://github.com/* ]] || continue
+    dest="$(basename "${repo}")"
+    ssh_url="$(sed -E 's#https://github.com/(.+)#git@github.com:\1#' <<<"${repo}")"
+    sudo -u "${SSH_USER}" git -C "/home/${SSH_USER}/${dest}" remote set-url --push origin "${ssh_url}"
+  done
+fi
+
 # MODS for localcoda repos
 #
 # Use sysbox as the virtualization engine for localcoda
@@ -79,12 +90,6 @@ cd "$HOME/eoepca-killercoda" && git switch "$BRANCH" ; cd "$HOME"
 envfile="$HOME/eoepca-killercoda/.env"
 grep -qxF 'export LOCALCODA_ROOT="../localcoda"' "$envfile" 2>/dev/null ||
   echo 'export LOCALCODA_ROOT="../localcoda"' >>"$envfile"
-SCRIPT
-# Deploy k9s for each tutorial
-sudo -u "${SSH_USER}" bash <<'SCRIPT'
-cd "$HOME"
-find $HOME/eoepca-killercoda -path "$HOME/eoepca-killercoda/commons" -prune \
-  -o -name assets -type d -exec ln -snfr $HOME/eoepca-killercoda/commons/assets/k9s {} \;
 SCRIPT
 # End of eoepca-killercoda repo modifications
 

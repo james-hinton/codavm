@@ -114,6 +114,14 @@ The core setup in `provision.sh` is extended by shell hooks in `provision.d/`. D
 
 Hooks run in the provisioning script's shell context and can use its variables and helper functions. Treat them as provisioning code: review what they do before running `vagrant up` or `vagrant provision`. See the [provision.d README](provision.d/README.md) for the hook interface, available helpers, and examples.
 
+The [contributed k9s hook](provision.d/contrib/10-enable-k9s-for-all-tutorials.sh) is an example that enables k9s assets for all tutorials. Files under `contrib/` are not loaded automatically. To include this hook, copy it into `provision.d/` or create a symbolic link there. Run either command from the `provision.d/` directory:
+
+```sh
+cp ./contrib/10-enable-k9s-for-all-tutorials.sh .
+# Or:
+ln -s ./contrib/10-enable-k9s-for-all-tutorials.sh .
+```
+
 ## Notes
 
 - The Vagrantfile supports VirtualBox and libvirt. The provider selected by `vagrant up` must be installed on the host.
