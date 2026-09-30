@@ -74,13 +74,20 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
 
   # Carry the host's git identity into the VM, if present.
-  host_git_config = File.expand_path("~/.config/git/config")
-  if File.exist?(host_git_config)
+  host_git_configs = [
+    ["~/.config/git/config", ".config/git/config"],
+    ["~/.gitconfig", ".gitconfig"]
+  ].filter_map do |host_path, guest_path|
+    path = File.expand_path(host_path)
+    [path, guest_path] if File.exist?(path)
+  end
+  host_git_configs.each do |host_path, guest_path|
     # Remove any prior copy first: SCP preserves the source file's mode, and
     # a read-only source produces a guest file that a later re-provision
     # can't overwrite.
-    config.vm.provision "shell", inline: "mkdir -p ~/.config/git && rm -f ~/.config/git/config", privileged: false
-    config.vm.provision "file", source: host_git_config, destination: ".config/git/config"
+    setup = guest_path.start_with?(".config/") ? "mkdir -p ~/.config/git && " : ""
+    config.vm.provision "shell", inline: "#{setup}rm -f ~/#{guest_path}", privileged: false
+    config.vm.provision "file", source: host_path, destination: guest_path
   end
 
   # Carry the host's SSH keypair into the VM, if present (e.g. for git over SSH).

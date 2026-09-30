@@ -148,5 +148,5 @@ ln -s ./contrib/10-enable-k9s-for-all-tutorials.sh .
 ## Notes
 
 - The Vagrantfile supports VirtualBox and libvirt. The provider selected by `vagrant up` must be installed on the host.
-- If present on the host, Vagrant copies an SSH key and `~/.config/git/config` into the guest during provisioning. This makes it possible to use your Git identity and push to repositories over SSH from the VM.
+- If present on the host, Vagrant copies an SSH key and the host Git config (`~/.config/git/config` and/or `~/.gitconfig`) into the guest during provisioning. This makes it possible to use your Git identity and push to repositories over SSH from the VM.
 - If provisioning needs to be rerun after a change, use `vagrant provision` from the host repository directory - or sometimes `vagrant reload --provision` if the VM needs to be restarted as well.
