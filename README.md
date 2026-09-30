@@ -1,6 +1,6 @@
 # Coda VM
 
-This repository defines a Vagrant VM for running the EOEPCA Localcoda tutorials. Provisioning installs Docker and Sysbox, then clones `localcoda` and `eoepca-killercoda` into the VM's `vagrant` home directory.
+This repository defines a Vagrant VM primarily as a self-contained environment for running the EOEPCA Localcoda tutorials. Provisioning installs Docker and Sysbox, then clones `localcoda` and `eoepca-killercoda` into the VM's `vagrant` home directory. The VM can also be used for development; when available, your host SSH key and Git configuration are copied into the VM, allowing you to push to Git repositories over SSH.
 
 ## Requirements
 
@@ -72,6 +72,12 @@ Vagrant downloads the Ubuntu box the first time it is needed. When provisioning 
 vagrant ssh
 ```
 
+The VM is intended for headless use; no graphical console or desktop is required. Once it is running, work inside it over SSH. You can use `vagrant ssh`, a regular SSH client, or connect from VS Code with Remote-SSH using the generated `ssh-config` file (see [VM lifecycle](#vm-lifecycle)). To make the VM's SSH host available through your normal SSH configuration, add an `Include` for the generated file at the top of `~/.ssh/config`, replacing the placeholder with the path to your local codavm directory:
+
+```sshconfig
+Include <path-to-your-codavm-dir>/ssh-config
+```
+
 ## Run a tutorial
 
 In the VM, change to the tutorials checkout and run a tutorial by its directory name:
@@ -125,5 +131,5 @@ ln -s ./contrib/10-enable-k9s-for-all-tutorials.sh .
 ## Notes
 
 - The Vagrantfile supports VirtualBox and libvirt. The provider selected by `vagrant up` must be installed on the host.
-- If a host SSH key is present, Vagrant copies it into the guest during provisioning.
+- If present on the host, Vagrant copies an SSH key and `~/.config/git/config` into the guest during provisioning. This makes it possible to use your Git identity and push to repositories over SSH from the VM.
 - If provisioning needs to be rerun after a change, use `vagrant provision` from the host repository directory.
