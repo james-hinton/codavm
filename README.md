@@ -66,19 +66,33 @@ Or, for libvirt:
 vagrant up --provider=libvirt
 ```
 
-Vagrant downloads the Ubuntu box the first time it is needed. When provisioning finishes, connect to the VM:
+Vagrant downloads the Ubuntu box the first time it is needed.
+
+## Connect to the VM
+
+When provisioning finishes, connect to the VM:
 
 ```sh
 vagrant ssh
 ```
 
-The VM is intended for headless use; no graphical console or desktop is required. Once it is running, work inside it over SSH. You can use `vagrant ssh`, a regular SSH client, or connect from VS Code with Remote-SSH using the generated `ssh-config` file (see [VM lifecycle](#vm-lifecycle)). To make the VM's SSH host available through your normal SSH configuration, add an `Include` for the generated file at the top of `~/.ssh/config`, replacing the placeholder with the path to your local codavm directory:
+The VM is intended for headless use; no graphical console or desktop is required. Once it is running, work inside it over SSH.
+
+You can use `vagrant ssh`, a regular SSH client, or connect from VS Code with Remote-SSH using the generated `ssh-config` file (see [VM lifecycle](#vm-lifecycle)).
+
+To make the VM's SSH host available through your normal SSH configuration, add an `Include` for the generated file at the top of `~/.ssh/config`, replacing the placeholder with the path to your local codavm directory:
 
 ```sshconfig
 Include <path-to-your-codavm-dir>/ssh-config
 ```
 
 ## Run a tutorial
+
+If not already connected to the VM via SSH, do so first:
+
+```sh
+vagrant ssh
+```
 
 In the VM, change to the tutorials checkout and run a tutorial by its directory name:
 
@@ -87,14 +101,16 @@ cd ~/eoepca-killercoda
 ./run.sh discovery
 ```
 
-Replace `discovery` with the name of another tutorial directory in `eoepca-killercoda`. Provisioning checks out the `eoepca-2.1` branch by default and configures the tutorial environment to use the neighboring `~/localcoda` checkout. To use a different branch, set the override before starting the VM:
+Replace `discovery` with the name of another tutorial directory in `eoepca-killercoda`.
+
+Provisioning checks out the `eoepca-2.1` branch by default and configures the tutorial environment to use the neighboring `~/localcoda` checkout. To use a different branch, set the override before creating the VM:
 
 ```sh
 export CODAVM_KILLERCODA_BRANCH=my-feature-branch
-vagrant up --provider=libvirt
+vagrant up --provider=virtualbox
 ```
 
-For an existing VM, set the variable and run `vagrant provision` to switch its checkout to that branch.
+For an existing VM, set the variable and run `vagrant provision` to switch its checkout to that branch. Alternatively you can directly switch the branch from within the VM.
 
 ## VM lifecycle
 
@@ -132,4 +148,4 @@ ln -s ./contrib/10-enable-k9s-for-all-tutorials.sh .
 
 - The Vagrantfile supports VirtualBox and libvirt. The provider selected by `vagrant up` must be installed on the host.
 - If present on the host, Vagrant copies an SSH key and `~/.config/git/config` into the guest during provisioning. This makes it possible to use your Git identity and push to repositories over SSH from the VM.
-- If provisioning needs to be rerun after a change, use `vagrant provision` from the host repository directory.
+- If provisioning needs to be rerun after a change, use `vagrant provision` from the host repository directory - or sometimes `vagrant reload --provision` if the VM needs to be restarted as well.
