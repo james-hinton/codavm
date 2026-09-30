@@ -11,13 +11,13 @@ This repository defines a Vagrant VM primarily as a self-contained environment f
   - **VirtualBox:** install Oracle VirtualBox.
   - **libvirt:** install and configure libvirt/QEMU for your host, then install the Vagrant provider plugin with `vagrant plugin install vagrant-libvirt`. The plugin may also require host development libraries; follow the `vagrant-libvirt` installation instructions for your distribution.
 
-The default VM resources are 4 CPUs, 8 GB RAM, and a 60 GB disk. Make sure the host has enough available resources. These host environment variables configure the Vagrant machine name, guest hostname, VM resources, guest addresses, and tutorial branch:
+The default VM resources are 4 CPUs, 8 GB RAM, and a 64 GB disk. Make sure the host has enough available resources. These host environment variables configure the Vagrant machine name, guest hostname, VM resources, guest addresses, and tutorial branch:
 
 | Environment variable | Default | Setting |
 | --- | ---: | --- |
 | `CODAVM_CPUS` | `4` | Virtual CPUs |
 | `CODAVM_MEMORY_MB` | `8192` | Memory in MB |
-| `CODAVM_DISK_GB` | `60` | Disk size in GB |
+| `CODAVM_DISK_GB` | `64` | Disk size in GB |
 | `CODAVM_VBOX_IP` | `192.168.56.10` | VirtualBox guest IP |
 | `CODAVM_LIBVIRT_IP` | `172.28.128.100` | libvirt guest IP |
 | `CODAVM_KILLERCODA_BRANCH` | `eoepca-2.1` | Tutorial repository branch |

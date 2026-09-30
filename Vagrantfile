@@ -23,7 +23,7 @@ end
 # Host-overridable VM resource defaults (memory in MB, disk in GB).
 VM_CPUS = positive_integer_env("CODAVM_CPUS", 4)
 VM_MEMORY_MB = positive_integer_env("CODAVM_MEMORY_MB", 8192)
-VM_DISK_GB = positive_integer_env("CODAVM_DISK_GB", 60)
+VM_DISK_GB = positive_integer_env("CODAVM_DISK_GB", 64)
 
 # Host-overridable guest addresses on each provider's private network.
 VBOX_IP = ipv4_env("CODAVM_VBOX_IP", "192.168.56.10")
@@ -64,9 +64,18 @@ Vagrant.configure("2") do |config|
     lv.cpu_mode = "host-passthrough"
   end
 
-  # Expand the file-system to the disk size
-  config.vm.provision "shell", inline: <<-SHELL
-    lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
+  # Expand the partition, LVM physical volume, logical volume, and filesystem.
+  config.vm.provision "shell", name: "expand-root-disk", inline: <<-SHELL
+    set -eu
+    pv_device=$(pvs --noheadings -o pv_name | xargs)
+    parent_device=$(lsblk -dnro PKNAME "$pv_device")
+    partition_number=$(lsblk -dnro PARTN "$pv_device")
+    growpart "/dev/$parent_device" "$partition_number" || [ "$?" -eq 1 ]
+    pvresize "$pv_device"
+    free_extents=$(vgs --noheadings -o vg_free_count ubuntu-vg | xargs)
+    if [ "$free_extents" -gt 0 ]; then
+      lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
+    fi
     resize2fs /dev/ubuntu-vg/ubuntu-lv
   SHELL
 
