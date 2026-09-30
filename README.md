@@ -5,7 +5,8 @@ This repository defines a Vagrant VM primarily as a self-contained environment f
 ## Requirements
 
 - Git and Vagrant installed on the host.
-- One Vagrant provider installed and usable by your user:
+- One Vagrant provider installed and usable by your user:<br>
+  _Note that the VM is intended for headless use; no graphical console or desktop is required_
   - **VirtualBox:** install Oracle VirtualBox.
   - **libvirt:** install and configure libvirt/QEMU for your host, then install the Vagrant provider plugin with `vagrant plugin install vagrant-libvirt`. The plugin may also require host development libraries; follow the `vagrant-libvirt` installation instructions for your distribution.
 - The Vagrant Triggers plugin, used to generate the local `ssh-config` file after startup:
