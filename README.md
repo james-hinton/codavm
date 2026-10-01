@@ -26,6 +26,7 @@ The default VM resources are 4 CPUs, 8 GB RAM, and a 64 GB disk. Make sure the h
 | `CODAVM_KILLERCODA_BRANCH` | `eoepca-2.1` | Tutorial repository branch |
 | `CODAVM_NAME` | `codavm` | Vagrant machine name (SSH config host and libvirt domain) |
 | `CODAVM_HOSTNAME` | `codavm` | Guest hostname |
+| `CODAVM_EXT_DOMAIN_NAME` | *(none)* | Routable DNS domain (e.g. `mydomain.com`) to use instead of the nip.io domain derived from the guest IP |
 
 For example, to use fewer resources with libvirt:
 

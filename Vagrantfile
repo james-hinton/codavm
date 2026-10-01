@@ -31,6 +31,9 @@ LIBVIRT_IP = ipv4_env("CODAVM_LIBVIRT_IP", "172.28.128.100")
 KILLERCODA_BRANCH = ENV.fetch("CODAVM_KILLERCODA_BRANCH", "eoepca-2.1")
 VM_NAME = ENV.fetch("CODAVM_NAME", "codavm")
 VM_HOSTNAME = ENV.fetch("CODAVM_HOSTNAME", "codavm")
+# Optional: a routable DNS domain (e.g. mydomain.com) to use instead of the
+# nip.io domain derived from the guest's private network IP.
+EXT_DOMAIN_NAME = ENV.fetch("CODAVM_EXT_DOMAIN_NAME", "")
 
 Vagrant.configure("2") do |config|
   # Defaults the machine name to "codavm" instead of Vagrant's "default"
@@ -120,6 +123,7 @@ Vagrant.configure("2") do |config|
   config.vm.provider :virtualbox do |vb, override|
     override.vm.provision "shell", path: "provision.sh", env: {
       "EXT_IP_ADDR" => VBOX_IP,
+      "EXT_DOMAIN_NAME" => EXT_DOMAIN_NAME,
       "EOEPCA_KILLERCODA_BRANCH" => KILLERCODA_BRANCH
     }
   end
@@ -127,6 +131,7 @@ Vagrant.configure("2") do |config|
   config.vm.provider :libvirt do |lv, override|
     override.vm.provision "shell", path: "provision.sh", env: {
       "EXT_IP_ADDR" => LIBVIRT_IP,
+      "EXT_DOMAIN_NAME" => EXT_DOMAIN_NAME,
       "EOEPCA_KILLERCODA_BRANCH" => KILLERCODA_BRANCH
     }
   end

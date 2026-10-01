@@ -74,12 +74,19 @@ sed -i "s/^VIRT_ENGINE=.*/VIRT_ENGINE=sysbox/" "${conf_file}"
 grep -qFx "VIRT_ENGINE=sysbox" "${conf_file}" \
   || echo "VIRT_ENGINE=sysbox" >>"${conf_file}"
 #
-# Set EXT_DOMAIN_NAME using the external IP address provided by Vagrant
-hexip="$(printf '%02x%02x%02x%02x' ${EXT_IP_ADDR//./ })"
+# Set EXT_DOMAIN_NAME: use the caller-supplied domain if given (e.g. a
+# routable DNS domain such as mydomain.com), otherwise derive a nip.io
+# domain from the external IP address provided by Vagrant.
+if [ -n "${EXT_DOMAIN_NAME:-}" ]; then
+  domain_name=".${EXT_DOMAIN_NAME}"
+else
+  hexip="$(printf '%02x%02x%02x%02x' ${EXT_IP_ADDR//./ })"
+  domain_name=".${hexip}.nip.io"
+fi
 # Appends the setting if the sed pattern below matched nothing (0 substitutions).
-sed -i "s/^EXT_DOMAIN_NAME=.*/EXT_DOMAIN_NAME=.${hexip}.nip.io/" "${conf_file}"
-grep -qFx "EXT_DOMAIN_NAME=.${hexip}.nip.io" "${conf_file}" \
-  || echo "EXT_DOMAIN_NAME=.${hexip}.nip.io" >>"${conf_file}"
+sed -i "s/^EXT_DOMAIN_NAME=.*/EXT_DOMAIN_NAME=${domain_name}/" "${conf_file}"
+grep -qFx "EXT_DOMAIN_NAME=${domain_name}" "${conf_file}" \
+  || echo "EXT_DOMAIN_NAME=${domain_name}" >>"${conf_file}"
 # End of localcoda repo modifications
 
 # MODS for eoepca-killercoda repos
