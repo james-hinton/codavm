@@ -4,11 +4,14 @@ This repository defines a Vagrant VM primarily as a self-contained environment f
 
 ## Requirements
 
-- Git and Vagrant installed on the host<br>
+- Git and [Vagrant](https://developer.hashicorp.com/vagrant) installed on the host<br>
   _Vagrant 2.1.0 or newer for trigger support; check your provider plugin’s compatibility requirements._
-- One Vagrant provider installed and usable by your user:<br>
+  - [Vagrant download and install](https://developer.hashicorp.com/vagrant/install)
+- One Vagrant [provider](https://developer.hashicorp.com/vagrant/docs/providers) installed and usable by your user:<br>
   _Note that the VM is intended for headless use; no graphical console or desktop is required_
-  - **VirtualBox:** install Oracle VirtualBox.
+  - **VirtualBox:** install Oracle VirtualBox
+    - [Download and install](https://www.virtualbox.org/wiki/Downloads)
+    - [Provider docs](https://developer.hashicorp.com/vagrant/docs/providers/virtualbox)
   - **libvirt:** install and configure libvirt/QEMU for your host, then install the Vagrant provider plugin with `vagrant plugin install vagrant-libvirt`. The plugin may also require host development libraries; follow the `vagrant-libvirt` installation instructions for your distribution.
 
 The default VM resources are 4 CPUs, 8 GB RAM, and a 64 GB disk. Make sure the host has enough available resources. These host environment variables configure the Vagrant machine name, guest hostname, VM resources, guest addresses, and tutorial branch:
