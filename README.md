@@ -104,6 +104,16 @@ cd ~/eoepca-killercoda
 
 Replace `discovery` with the name of another tutorial directory in `eoepca-killercoda`.
 
+Alternatively, you can connect and run the tutorial in a single command:
+
+```sh
+vagrant ssh -c "./eoepca-killercoda/run.sh discovery"
+```
+
+Once the tutorial is running then the terminal output provides the URL to connect in your browser.
+
+## Tutorial branch selection
+
 Provisioning checks out the `eoepca-2.1` branch by default and configures the tutorial environment to use the neighboring `~/localcoda` checkout. To use a different branch, set the override before creating the VM:
 
 ```sh
