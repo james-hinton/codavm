@@ -5,6 +5,7 @@ SYSBOX_VERSION="0.7.1"
 SYSBOX_DEB="sysbox-ce_${SYSBOX_VERSION}.linux_amd64.deb"
 SYSBOX_URL="https://github.com/nestybox/sysbox/releases/download/v${SYSBOX_VERSION}/${SYSBOX_DEB}"
 SSH_USER="vagrant"
+DOCKER_BRIDGE_IP="172.20.0.1"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -87,6 +88,10 @@ fi
 sed -i "s/^EXT_DOMAIN_NAME=.*/EXT_DOMAIN_NAME=${domain_name}/" "${conf_file}"
 grep -qFx "EXT_DOMAIN_NAME=${domain_name}" "${conf_file}" \
   || echo "EXT_DOMAIN_NAME=${domain_name}" >>"${conf_file}"
+#
+# Keep tutorials within the port range forwarded by the Vagrantfile
+sed -i "s/^LOCAL_RANDOMPORT_MIN=.*/LOCAL_RANDOMPORT_MIN=${PORT_MIN}/" "${conf_file}"
+sed -i "s/^LOCAL_RANDOMPORT_MAX=.*/LOCAL_RANDOMPORT_MAX=${PORT_MAX}/" "${conf_file}"
 # End of localcoda repo modifications
 
 # MODS for eoepca-killercoda repos
@@ -129,6 +134,16 @@ if ! command -v sysbox-runc &>/dev/null; then
   apt-get install -y "/tmp/${SYSBOX_DEB}"
   rm -f "/tmp/${SYSBOX_DEB}"
 fi
+
+mkdir -p /etc/systemd/resolved.conf.d
+cat >/etc/systemd/resolved.conf.d/docker-bridge.conf <<EOF
+[Resolve]
+DNSStubListenerExtra=${DOCKER_BRIDGE_IP}
+EOF
+systemctl restart systemd-resolved
+
+jq --arg ip "${DOCKER_BRIDGE_IP}" '.dns = [$ip]' /etc/docker/daemon.json >/tmp/daemon.json
+mv /tmp/daemon.json /etc/docker/daemon.json
 
 # The sysbox package registers itself as a Docker runtime and restarts
 # docker + sysbox services on install/upgrade, but make sure both are up.
