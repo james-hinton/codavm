@@ -135,7 +135,7 @@ if ! command -v sysbox-runc &>/dev/null; then
 fi
 
 # Containers use the VM's DNS resolver, libvirt doesn't answer short service names, which makes gRPC lookups time out.
-DOCKER_BRIDGE_IP="$(docker network inspect bridge | jq -r '.[0].IPAM.Config[0].Gateway')"
+DOCKER_BRIDGE_IP="$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}')"
 
 mkdir -p /etc/systemd/resolved.conf.d
 cat >/etc/systemd/resolved.conf.d/docker-bridge.conf <<EOF
