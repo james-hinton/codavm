@@ -5,7 +5,6 @@ SYSBOX_VERSION="0.7.1"
 SYSBOX_DEB="sysbox-ce_${SYSBOX_VERSION}.linux_amd64.deb"
 SYSBOX_URL="https://github.com/nestybox/sysbox/releases/download/v${SYSBOX_VERSION}/${SYSBOX_DEB}"
 SSH_USER="vagrant"
-DOCKER_BRIDGE_IP="172.20.0.1"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -134,6 +133,9 @@ if ! command -v sysbox-runc &>/dev/null; then
   apt-get install -y "/tmp/${SYSBOX_DEB}"
   rm -f "/tmp/${SYSBOX_DEB}"
 fi
+
+# Containers use the VM's DNS resolver, libvirt doesn't answer short service names, which makes gRPC lookups time out.
+DOCKER_BRIDGE_IP="$(docker network inspect bridge | jq -r '.[0].IPAM.Config[0].Gateway')"
 
 mkdir -p /etc/systemd/resolved.conf.d
 cat >/etc/systemd/resolved.conf.d/docker-bridge.conf <<EOF
